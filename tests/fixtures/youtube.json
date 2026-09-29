@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "abc123",
+      "snippet": {
+        "title": "Solar Eclipse Live",
+        "channelTitle": "Science",
+        "publishedAt": "2026-09-03T12:00:00Z",
+        "categoryId": "28",
+        "defaultAudioLanguage": "en"
+      },
+      "statistics": {"viewCount": "1000000", "likeCount": "50000"}
+    }
+  ]
+}
+

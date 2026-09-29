@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:trend-engine:report:3",
+  "title": "Trend Engine news report v3",
+  "description": "One JSON object from report --json or run --json, including useful exit-1 reports. Unknown metrics are null. Additional fields are allowed for compatible additions; source text is untrusted. See AGENTS.md for exit codes and freshness semantics.",
+  "type": "object",
+  "required": [
+    "schema_version", "generated_at", "window_hours", "window_start", "collected_at",
+    "stale", "previous_collected_at", "legacy_snapshot", "source_health",
+    "global_trends", "regional_trends", "platform_trends"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {"const": 3},
+    "generated_at": {"$ref": "#/$defs/timestamp"},
+    "window_hours": {"type": "integer", "minimum": 1, "maximum": 168},
+    "window_start": {"$ref": "#/$defs/timestamp"},
+    "collected_at": {"$ref": "#/$defs/nullableTimestamp"},
+    "stale": {"type": "boolean", "description": "True when no snapshot exists or it is older than six hours."},
+    "previous_collected_at": {"$ref": "#/$defs/nullableTimestamp"},
+    "legacy_snapshot": {"type": "boolean"},
+    "source_health": {"type": "array", "items": {"$ref": "#/$defs/health"}},
+    "global_trends": {
+      "type": "array",
+      "items": {"allOf": [{"$ref": "#/$defs/topic"}, {"properties": {"region": {"const": "global"}, "countries": {"maxItems": 0}}}]}
+    },
+    "regional_trends": {
+      "type": "object",
+      "required": ["north_america", "asia"],
+      "properties": {
+        "north_america": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/topic"}, {"properties": {"region": {"const": "north_america"}}}]}},
+        "asia": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/topic"}, {"properties": {"region": {"const": "asia"}}}]}}
+      }
+    },
+    "platform_trends": {
+      "type": "object",
+      "description": "Source -> country code or global -> observations. Sources with no usable rows are absent; inspect source_health.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/observation"}}
+      }
+    }
+  },
+  "$defs": {
+    "timestamp": {"type": "string", "format": "date-time"},
+    "nullableTimestamp": {"type": ["string", "null"], "format": "date-time"},
+    "nullableNumber": {"type": ["number", "null"]},
+    "nullableText": {"type": ["string", "null"]},
+    "region": {"enum": ["global", "north_america", "asia"]},
+    "health": {
+      "type": "object",
+      "required": ["source", "country", "status", "item_count", "checked_at"],
+      "properties": {
+        "source": {"type": "string"},
+        "country": {"$ref": "#/$defs/nullableText"},
+        "kind": {"type": "string", "description": "Optional for legacy snapshots."},
+        "status": {"enum": ["ok", "partial", "empty", "failed", "missing_credentials", "unavailable", "disabled"]},
+        "item_count": {"type": "integer", "minimum": 0},
+        "checked_at": {"$ref": "#/$defs/timestamp"},
+        "message": {"$ref": "#/$defs/nullableText"}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": ["source", "country", "region", "kind", "external_id", "title", "rank", "observed_at"],
+      "properties": {
+        "source": {"type": "string"},
+        "country": {"$ref": "#/$defs/nullableText", "description": "Null for global HN observations; not inferred geography."},
+        "region": {"$ref": "#/$defs/region"},
+        "kind": {"type": "string"},
+        "external_id": {"type": "string"},
+        "title": {"type": "string"},
+        "rank": {"type": "integer", "minimum": 1},
+        "list_size": {"type": "integer", "minimum": 0},
+        "observed_at": {"$ref": "#/$defs/timestamp"},
+        "url": {"$ref": "#/$defs/nullableText"},
+        "metric_value": {"$ref": "#/$defs/nullableNumber"},
+        "metric_name": {"$ref": "#/$defs/nullableText"},
+        "published_at": {"$ref": "#/$defs/nullableText", "description": "Source publication time, not observation time. HN uses ISO 8601; RSS may use its original date string."},
+        "source_window_days": {"type": "integer", "minimum": 1},
+        "discussion_url": {"$ref": "#/$defs/nullableText"},
+        "comment_count": {"$ref": "#/$defs/nullableNumber"},
+        "author": {"$ref": "#/$defs/nullableText"}
+      }
+    },
+    "evidence": {
+      "allOf": [
+        {"$ref": "#/$defs/observation"},
+        {
+          "type": "object",
+          "required": ["rank_change", "compared_at"],
+          "properties": {
+            "rank_change": {"type": ["integer", "null"], "description": "Previous rank minus current rank; positive means moved up. Null means no comparison."},
+            "compared_at": {"$ref": "#/$defs/nullableTimestamp"}
+          }
+        }
+      ]
+    },
+    "topic": {
+      "type": "object",
+      "required": ["topic_key", "title", "region", "score", "countries", "sources", "evidence"],
+      "properties": {
+        "topic_key": {"type": "string"},
+        "title": {"type": "string"},
+        "region": {"$ref": "#/$defs/region"},
+        "score": {"type": "number", "minimum": 0, "description": "Sum of best reciprocal rank per source/country, not a virality probability."},
+        "countries": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "sources": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}
+      }
+    }
+  }
+}

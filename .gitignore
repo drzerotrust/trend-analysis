@@ -1,0 +1,25 @@
+venv/
+.env
+.env.*
+!.env.example
+# Independent skills repository; initialize and version it separately.
+/skills/
+*.db
+*.sqlite3
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+reports/*
+!reports/.gitkeep
+/.agents/
+skills-lock.json
+*.swp
+*.swo
+AGENTS.md

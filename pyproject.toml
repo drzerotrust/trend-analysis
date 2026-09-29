@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trend-engine"
+dynamic = ["version"]
+description = "Small Python CLI for news trends and public attention signals"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+dependencies = ["peewee>=4.5.1,<5"]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6,<1", "jsonschema>=4.23,<5"]
+
+[project.scripts]
+trend-engine = "cli:main"
+
+[tool.hatch.version]
+path = "src/compatibility.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src"]
+sources = ["src"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"contracts" = "trend_engine_contracts"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "contracts", "tests", "README.md", "AGENTS.md", "config.toml", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = [".agents", ".codex", "venv", "skills"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# Keep the simple percent formatting used by these scripts.
+ignore = ["UP031", "UP032"]

@@ -1,0 +1,15 @@
+{
+  "BaseResp": {"StatusCode": 0, "StatusMessage": ""},
+  "entityInfos": [
+    {
+      "itemAuthorInfo": {"handlerName": "science", "nickName": "Science"},
+      "itemInfo": {"itemID": 99, "title": "Solar eclipse live"},
+      "itemMetrics": {
+        "videoViews": 500000,
+        "organicVideoViews": 450000,
+        "engagementRate": 0.12
+      }
+    }
+  ],
+  "pagination": {"hasMore": false, "limit": 20, "page": 1, "totalCount": 1}
+}

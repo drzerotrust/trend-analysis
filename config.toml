@@ -1,0 +1,10 @@
+# Paths are relative to this configuration file.
+countries = ["US", "CA", "MX", "JP", "KR", "IN", "ID", "SG"]
+sources = ["hacker_news", "google_trends", "tiktok", "youtube"]
+database = "trend_engine.db"
+reports_dir = "reports"
+timeout = 20
+workers = 4
+window = 24
+# Report size and maximum Hacker News entries fetched from the top-stories list.
+limit = 25

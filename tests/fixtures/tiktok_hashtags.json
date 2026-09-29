@@ -1,0 +1,15 @@
+{
+  "BaseResp": {"StatusCode": 0, "StatusMessage": ""},
+  "items": [
+    {
+      "hashtagID": "42",
+      "hashtagName": "solareclipse",
+      "publishCnt": 5000,
+      "rankIndex": 2,
+      "vv": 123456,
+      "industryIDs": [23000000000]
+    }
+  ],
+  "pagination": {"hasMore": false, "limit": 20, "page": 1, "totalCount": 1}
+}
+

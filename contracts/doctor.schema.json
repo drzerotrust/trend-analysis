@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:trend-engine:doctor:2",
+  "title": "Trend Engine offline doctor response",
+  "description": "Installation compatibility and local configuration only. No network, credential-validity, database-access, or data-freshness checks.",
+  "type": "object",
+  "required": ["doctor_version", "tool", "version", "status", "contracts", "configuration", "network_checked", "errors"],
+  "properties": {
+    "doctor_version": {"const": 2},
+    "tool": {"const": "trend-engine"},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status": {"enum": ["success", "error"]},
+    "contracts": {
+      "type": "object",
+      "required": ["report", "doctor"],
+      "properties": {
+        "report": {"type": "integer", "minimum": 1},
+        "doctor": {"const": 2}
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "required": ["status", "enabled_sources", "youtube_key_present"],
+      "properties": {
+        "status": {"enum": ["ok", "not_checked", "error"]},
+        "enabled_sources": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "youtube_key_present": {"type": "boolean"}
+      }
+    },
+    "network_checked": {"const": false},
+    "errors": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  }
+}

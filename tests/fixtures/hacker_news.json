@@ -1,0 +1,27 @@
+{
+  "topstories": [101, 102, 103, 104, 105, 106],
+  "items": {
+    "101": {
+      "id": 101,
+      "type": "story",
+      "title": "Open source &amp; fast databases",
+      "url": "https://example.org/databases",
+      "by": "example_author",
+      "score": 120,
+      "descendants": 35,
+      "time": 1175714200
+    },
+    "102": {"id": 102, "type": "job", "title": "Hiring engineers"},
+    "103": {
+      "id": 103,
+      "type": "story",
+      "title": "Ask HN: How do you follow tech trends?",
+      "score": 10,
+      "descendants": 8,
+      "time": 1175714200
+    },
+    "104": {"id": 104, "deleted": true},
+    "105": {"id": 105, "type": "story", "dead": true},
+    "106": null
+  }
+}
