@@ -29,6 +29,11 @@ class CompatibilityTests(unittest.TestCase):
         self.enterContext(working_directory)
         self.enterContext(environment)
 
+        # Keep optional credential discovery away from the real checkout and home.
+        checkout_root = patch("environment.CHECKOUT_ROOT", self.directory)
+        self.enterContext(checkout_root)
+        os.environ["XDG_CONFIG_HOME"] = str(self.directory / "user-config")
+
         # Discovery commands must not collect, read reports, or open storage.
         for target in (
             "cli.collect",
@@ -203,7 +208,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertNotIn(secret, text)
             self.assertNotIn(directory, text)
 
-    def test_doctor_reports_presence_without_values_or_dotenv_loading(self):
+    def test_doctor_ignores_cwd_dotenv_and_reports_exported_key(self):
         dotenv_path = self.directory / ".env"
         dotenv_path.write_text("YOUTUBE_API_KEY=test-dotenv-not-loaded\n")
         status, document = self.doctor()

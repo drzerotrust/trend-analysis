@@ -1,0 +1,360 @@
+/* One shared palette keeps the report readable in light and dark mode. */
+:root {
+    color-scheme: light dark;
+    --canvas: #eef2f5;
+    --paper: #ffffff;
+    --ink: #243247;
+    --heading: #142337;
+    --muted: #53647a;
+    --accent: #08776f;
+    --link: #086baf;
+    --line: #dce4eb;
+    --soft: #f4f7fa;
+    --highlight: #d5eee8;
+    --shadow: 0 12px 40px rgb(20 35 55 / 7%);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--canvas);
+    font-size: 16px;
+}
+
+/* A centered reading surface; no remote fonts or extra markup required. */
+body {
+    width: calc(100% - 3rem);
+    max-width: 72rem;
+    margin: 3rem auto;
+    padding: clamp(1.25rem, 4vw, 3.5rem);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--accent);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+}
+
+::selection {
+    background: var(--highlight);
+    color: var(--heading);
+}
+
+/* Make the report title and section boundaries easy to scan. */
+h1,
+h2,
+h3,
+h4 {
+    color: var(--heading);
+    line-height: 1.3;
+    scroll-margin-top: 2rem;
+}
+
+h1 {
+    margin: 0 0 1.5rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+h2 {
+    margin: 3rem 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--line);
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+}
+
+h3 {
+    margin: 2rem 0 0.75rem;
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+h4 {
+    margin: 1.5rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+p {
+    margin: 0 0 1.1rem;
+}
+
+body > p {
+    max-width: 80ch;
+    color: var(--muted);
+}
+
+/* Preserve the separate timestamp/window lines in the opening paragraph. */
+h1 + p {
+    padding: 1rem 1.25rem;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    background: var(--soft);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    white-space: pre-line;
+}
+
+strong {
+    color: var(--heading);
+    font-weight: 650;
+}
+
+/* Evidence links stay recognizable without relying on color alone. */
+a {
+    color: var(--link);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+}
+
+a:hover {
+    color: var(--accent);
+    text-decoration-thickness: 2px;
+}
+
+a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 2px;
+}
+
+/* Give long headline lists room, while keeping nested evidence compact. */
+ul,
+ol {
+    margin: 0 0 1.5rem;
+    padding-left: 1.5rem;
+}
+
+li {
+    margin: 0.75rem 0;
+    padding-left: 0.25rem;
+}
+
+li::marker {
+    color: var(--accent);
+}
+
+li > ul,
+li > ol {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+li > p {
+    margin-bottom: 0.5rem;
+}
+
+/* Wide source-health tables scroll locally instead of widening the page. */
+table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 1.25rem 0 2rem;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    border-spacing: 0;
+    border-collapse: separate;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+    min-width: 7rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: normal;
+}
+
+th {
+    background: var(--soft);
+    color: var(--heading);
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+td:first-child {
+    color: var(--heading);
+    font-weight: 600;
+}
+
+td:last-child {
+    min-width: 15rem;
+    overflow-wrap: anywhere;
+}
+
+tbody tr:nth-child(even) {
+    background: var(--soft);
+}
+
+tbody tr:hover {
+    background: var(--highlight);
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* Standard Markdown extras, including notes and technical snippets. */
+blockquote {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    background: var(--soft);
+    color: var(--muted);
+}
+
+blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+code,
+pre {
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-size: 0.88em;
+}
+
+code {
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    background: var(--soft);
+}
+
+pre {
+    padding: 1.25rem;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--soft);
+    line-height: 1.6;
+}
+
+pre code {
+    padding: 0;
+    font-size: inherit;
+}
+
+hr {
+    margin: 2rem 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+/* Use the reader's system preference, without JavaScript or a theme toggle. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --canvas: #101820;
+        --paper: #18232f;
+        --ink: #dce5ee;
+        --heading: #f2f6fa;
+        --muted: #acbdce;
+        --accent: #76d8c5;
+        --link: #91c8ff;
+        --line: #334556;
+        --soft: #202e3c;
+        --highlight: #294b4a;
+        --shadow: 0 12px 40px rgb(0 0 0 / 18%);
+    }
+}
+
+/* The HTML wrapper needs a viewport meta tag for phone-sized layouts. */
+@media (max-width: 640px) {
+    body {
+        width: 100%;
+        margin: 0;
+        padding: 1.5rem 1rem;
+        border-right: 0;
+        border-left: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    h2 {
+        margin-top: 2.25rem;
+        font-size: 1.25rem;
+    }
+
+    th,
+    td {
+        padding: 0.7rem 0.8rem;
+    }
+}
+
+/* Printed reports should conserve ink and include the full table content. */
+@media print {
+    :root {
+        color-scheme: light;
+        --canvas: #ffffff;
+        --paper: #ffffff;
+        --ink: #000000;
+        --heading: #000000;
+        --muted: #333333;
+        --accent: #333333;
+        --link: #000000;
+        --line: #cccccc;
+        --soft: #ffffff;
+        --highlight: #ffffff;
+    }
+
+    body {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+        font-size: 10pt;
+    }
+
+    h1,
+    h2,
+    h3 {
+        break-after: avoid;
+    }
+
+    table {
+        display: table;
+        overflow: visible;
+        table-layout: fixed;
+        font-size: 8pt;
+    }
+
+    th,
+    td,
+    td:last-child {
+        min-width: 0;
+        padding: 0.4rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    tr {
+        break-inside: avoid;
+    }
+
+    pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}

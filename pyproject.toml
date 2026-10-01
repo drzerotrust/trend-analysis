@@ -9,10 +9,10 @@ description = "Small Python CLI for news trends and public attention signals"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
-dependencies = ["peewee>=4.5.1,<5"]
+dependencies = ["peewee>=4.5.1,<5", "python-dotenv>=1.0,<2"]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.6,<1", "jsonschema>=4.23,<5"]
+dev = ["ruff>=0.6,<1", "jsonschema>=4.23,<5", "Markdown>=3.7,<4"]
 
 [project.scripts]
 trend-engine = "cli:main"
@@ -28,7 +28,7 @@ sources = ["src"]
 "contracts" = "trend_engine_contracts"
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "contracts", "tests", "README.md", "AGENTS.md", "config.toml", "pyproject.toml"]
+include = ["src", "contracts", "tests", "dirtyServer.py", "reports/static", "README.md", "AGENTS.md", "config.toml", "pyproject.toml"]
 
 [tool.ruff]
 line-length = 88

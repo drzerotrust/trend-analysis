@@ -2,6 +2,7 @@
 
 import io
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -12,7 +13,9 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
+from xml.etree import ElementTree
 
+import markdown as markdown_renderer
 from peewee import IntegrityError
 
 from cli import main
@@ -62,6 +65,13 @@ class IntegrationTests(unittest.TestCase):
         self.config.write_text('countries = ["US"]\nsources = ["google_trends"]\n')
         self.settings = load_settings(self.config)
 
+        # Subprocess tests inherit only a temporary, empty credential file.
+        env_file = self.root / "test.env"
+        env_file.write_text("", encoding="utf-8")
+        variables = {"TREND_ENGINE_ENV_FILE": str(env_file)}
+        environment = patch.dict(os.environ, variables, clear=True)
+        self.enterContext(environment)
+
     def test_round_trip_and_report_without_replacing_same_minute_files(self):
         original = snapshot("Trend | [bad](javascript:alert(1)) <script>")
         save_snapshot(self.settings["database"], original)
@@ -101,6 +111,231 @@ class IntegrationTests(unittest.TestCase):
 
         self.assertEqual(report["regional_trends"]["north_america"], [])
         self.assertEqual(report["source_health"][0]["status"], "failed")
+
+    def test_markdown_titles_do_not_become_headings_inside_lists(self):
+        # Python-Markdown treats even hashtags without a space as headings.
+        titles = [
+            "#citytastetest",
+            "# Heading one",
+            "## Heading two",
+            "### Heading three",
+            "#### Heading four",
+            "##### Heading five",
+            "###### Heading six",
+            "#추석",
+            "  # Leading whitespace\n## Still the same title",
+        ]
+        batch = snapshot()
+        template = batch["observations"][0]
+        batch["observations"] = []
+
+        for country, region in (("US", "north_america"), ("JP", "asia")):
+            for rank, title in enumerate(titles, start=1):
+                row = template.copy()
+                row.update(
+                    source="youtube",
+                    kind="video",
+                    country=country,
+                    region=region,
+                    title=title,
+                    external_id=str(rank),
+                    rank=rank,
+                )
+                # Exercise both linked titles and the plain-text URL fallback.
+                if country == "JP":
+                    row["url"] = None
+
+                batch["observations"].append(row)
+
+        batch["health"] = []
+        save_snapshot(self.settings["database"], batch)
+
+        report = build_report(self.settings, now=NOW)
+        markdown_path, json_path = write_report(report, self.settings["reports_dir"])
+        text = markdown_path.read_text(encoding="utf-8")
+        rendered = markdown_renderer.markdown(text, extensions=["extra"])
+        document = ElementTree.fromstring("<report>%s</report>" % rendered)
+
+        # Preserve real report headings, but never promote a collected title.
+        headings = document.findall(".//h1")
+        self.assertEqual(len(headings), 1)
+        self.assertEqual(headings[0].text, "Trend Engine")
+        self.assertEqual(len(document.findall("./h2")), 2)
+        self.assertEqual(len(document.findall("./h3")), 0)
+        for level in range(1, 7):
+            selector = ".//li//h%s" % level
+            self.assertEqual(document.findall(selector), [])
+
+        rendered_text = "".join(document.itertext())
+        for title in titles:
+            words = title.split()
+            visible_title = " ".join(words)
+            self.assertIn(visible_title, rendered_text)
+
+        # Escaping belongs to Markdown output, never the saved evidence or JSON.
+        json_text = json_path.read_text(encoding="utf-8")
+        saved_report = json.loads(json_text)
+        self.assertEqual(saved_report, report)
+        self.assertEqual(load_snapshots(self.settings["database"], NOW, NOW), [batch])
+
+        for country in ("US", "JP"):
+            saved_titles = []
+            for row in saved_report["platform_trends"]["youtube"][country]:
+                saved_titles.append(row["title"])
+
+            self.assertEqual(saved_titles, titles)
+
+    def test_markdown_escaping_preserves_literal_title_text(self):
+        title = "# What's new: <h2>news</h2> & &#35;literal **not bold**"
+        batch = snapshot(title)
+        save_snapshot(self.settings["database"], batch)
+
+        report = build_report(self.settings, now=NOW)
+        markdown_path, _ = write_report(report, self.settings["reports_dir"])
+        text = markdown_path.read_text(encoding="utf-8")
+        rendered = markdown_renderer.markdown(text, extensions=["extra"])
+        document = ElementTree.fromstring("<report>%s</report>" % rendered)
+        rendered_text = "".join(document.itertext())
+
+        self.assertIn(title, rendered_text)
+        self.assertEqual(document.findall(".//li//h1"), [])
+        self.assertEqual(document.findall(".//li//h2"), [])
+        self.assertEqual(document.findall(".//li//strong"), [])
+
+    def test_markdown_evidence_is_nested_under_its_trend(self):
+        # Two topics in each region reveal evidence flattened into sibling items.
+        batch = snapshot()
+        template = batch["observations"][0]
+        batch["observations"] = []
+        batch["health"] = []
+        locations = (
+            ("US", "north_america"),
+            ("CA", "north_america"),
+            ("JP", "asia"),
+            ("KR", "asia"),
+            (None, "global"),
+        )
+
+        for country, region in locations:
+            for rank, title in enumerate(("First trend", "Second trend"), start=1):
+                row = template.copy()
+                row.update(
+                    source="youtube",
+                    kind="video",
+                    country=country,
+                    region=region,
+                    external_id=title,
+                    title=title,
+                    rank=rank,
+                )
+                if region == "global":
+                    row.update(
+                        source="hacker_news",
+                        kind="story",
+                        metric_value=17,
+                        comment_count=4,
+                        discussion_url="https://news.ycombinator.com/item?id=1",
+                        published_at=NOW.isoformat(),
+                    )
+
+                batch["observations"].append(row)
+
+        save_snapshot(self.settings["database"], batch)
+
+        report = build_report(self.settings, now=NOW)
+        markdown_path, _ = write_report(report, self.settings["reports_dir"])
+        text = markdown_path.read_text(encoding="utf-8")
+        rendered = markdown_renderer.markdown(text, extensions=["extra"])
+        document = ElementTree.fromstring("<report>%s</report>" % rendered)
+
+        # One combined list still keeps each topic's regional evidence nested.
+        topics = document.findall("./ul/li")
+        self.assertEqual(len(topics), 6)
+        expected_sources = {
+            "Global": ["hacker_news/global"],
+            "North America": ["youtube/US", "youtube/CA"],
+            "Asia": ["youtube/JP", "youtube/KR"],
+        }
+        for topic in topics:
+            summary = topic.text
+            evidence = topic.findall("./ul/li")
+            identities = []
+            for item in evidence:
+                content = "".join(item.itertext())
+                words = content.split()
+                identities.append(words[0])
+
+                # HN's continuation must stay inside the evidence item.
+                if words[0] == "hacker_news/global":
+                    self.assertIn("17 points; 4 comments;", content)
+                    selector = "./a[@href='https://news.ycombinator.com/item?id=1']"
+                    discussion = item.find(selector)
+                    self.assertIsNotNone(discussion)
+
+            for region, sources in expected_sources.items():
+                if " — %s;" % region in summary:
+                    self.assertCountEqual(identities, sources)
+                    break
+            else:
+                self.fail("Topic is missing its region: %s" % summary)
+
+    def test_markdown_shows_top_50_combined_topics_without_platform_duplicates(self):
+        batch = snapshot()
+        template = batch["observations"][0]
+        batch["observations"] = []
+        batch["health"] = []
+        feeds = (
+            ("hacker_news", None, "global", "story"),
+            ("youtube", "US", "north_america", "video"),
+            ("google_trends", "JP", "asia", "search"),
+            ("tiktok", "KR", "asia", "hashtag"),
+        )
+        self.settings["limit"] = 100
+
+        # Interleave platforms so a per-platform cap or insertion order is wrong.
+        for position in range(80, 0, -1):
+            source, country, region, kind = feeds[(position - 1) % 4]
+            title = "Trend %03d" % position
+            row = template.copy()
+            row.update(
+                source=source,
+                country=country,
+                region=region,
+                kind=kind,
+                title=title,
+                external_id=title,
+                rank=position,
+            )
+            batch["observations"].append(row)
+
+        save_snapshot(self.settings["database"], batch)
+        report = build_report(self.settings, now=NOW)
+        markdown_path, json_path = write_report(report, self.settings["reports_dir"])
+        text = markdown_path.read_text(encoding="utf-8")
+        rendered = markdown_renderer.markdown(text, extensions=["extra"])
+        document = ElementTree.fromstring("<report>%s</report>" % rendered)
+
+        topics = document.findall("./ul/li")
+        self.assertEqual(len(topics), 50)
+        for position, topic in enumerate(topics, start=1):
+            self.assertTrue(topic.text.startswith("Trend %03d — " % position))
+            self.assertEqual(len(topic.findall("./ul/li")), 1)
+
+        self.assertNotIn("Trend 051", text)
+        self.assertNotIn("Platform highlights", text)
+        self.assertIn("## Source health", text)
+
+        # The visual cap must not trim the machine-readable report or history.
+        json_text = json_path.read_text(encoding="utf-8")
+        saved_report = json.loads(json_text)
+        self.assertEqual(saved_report, report)
+        row_count = 0
+        for countries in saved_report["platform_trends"].values():
+            for rows in countries.values():
+                row_count += len(rows)
+
+        self.assertEqual(row_count, 80)
+        self.assertEqual(load_snapshots(self.settings["database"], NOW, NOW), [batch])
 
     def test_old_market_payloads_are_ignored_without_changing_history(self):
         old = snapshot()

@@ -124,11 +124,13 @@ def _cell(value):
         value = "—"
 
     text = str(value)
-    text = html.escape(text)
 
-    # Neutralize links, formatting, HTML, and table breaks in public source text.
-    for character in ("\\", "|", "[", "]", "*", "_", "`"):
+    # Hashtags can become headings even inside list items. Keep source text literal.
+    for character in ("\\", "|", "[", "]", "*", "_", "`", "#"):
         text = text.replace(character, "\\" + character)
+
+    # Escape HTML afterward so the # in entities such as &#x27; stays intact.
+    text = html.escape(text)
 
     # Collapse source whitespace so a value cannot span multiple table rows.
     words = text.split()
@@ -180,7 +182,7 @@ def _report_intro(report):
         ("Window: %s hours" % report["window_hours"]),
         "",
         "News and attention signals for research; not trade recommendations. "
-        "Regional lists describe sampled search/social feeds, not verified news.",
+        "Region labels describe sampled search/social feeds, not verified news.",
         "Hacker News is a global community feed for information and tech trends, "
         "not evidence of popularity in a particular country.",
         "",
@@ -238,7 +240,9 @@ def _evidence_lines(row):
     source_url = row.get("url")
     link = _link("source", source_url)
     observed_at = _cell(row["observed_at"])
-    line = "  - %s/%s %s, position %s, change %s: %s (observed %s)" % (
+
+    # Four spaces make evidence a child list of the trend in Python-Markdown.
+    line = "    - %s/%s %s, position %s, change %s: %s (observed %s)" % (
         source,
         country,
         kind,
@@ -249,14 +253,14 @@ def _evidence_lines(row):
     )
     lines = [line]
 
-    # HN provides discussion details in addition to the article evidence.
+    # Eight spaces keep HN's extra details inside its nested evidence item.
     if row["source"] == "hacker_news":
         points = _cell(row.get("metric_value"))
         comments = _cell(row.get("comment_count"))
         discussion_url = row.get("discussion_url")
         discussion = _link("Discussion", discussion_url)
         published_at = _cell(row.get("published_at"))
-        line = "    %s points; %s comments; %s; published %s." % (
+        line = "        %s points; %s comments; %s; published %s." % (
             points,
             comments,
             discussion,
@@ -267,61 +271,43 @@ def _evidence_lines(row):
     return lines
 
 
+def _display_topic_order(topic):
+    # Compare scores across the report; use title and region for stable ties.
+    return -topic["score"], topic["title"], topic["region"]
+
+
 def _trend_sections(report):
-    # Lead with the global information/tech channel; keep regional evidence separate.
-    lines = []
-    sections = {"global": report["global_trends"]}
-    sections.update(report["regional_trends"])
-    for region, topics in sections.items():
-        title = region.replace("_", " ")
-        title = title.title()
-        if region == "global":
-            title = "Global information and tech trends — Hacker News"
-        lines += [("## %s" % title), ""]
-        if not topics:
-            lines += ["No observations in the latest snapshot.", ""]
+    # Apply one visual cap after combining the configured report's topic lists.
+    topics = report["global_trends"].copy()
+    for regional_topics in report["regional_trends"].values():
+        topics.extend(regional_topics)
 
-        for topic in topics:
-            title = _cell(topic["title"])
-            countries = ", ".join(topic["countries"]) or "global"
-            summary = "- %s — score %s; %s" % (title, topic["score"], countries)
-            lines.append(summary)
+    topics.sort(key=_display_topic_order)
+    topics = topics[:50]
 
-            for row in topic["evidence"]:
-                evidence = _evidence_lines(row)
-                lines.extend(evidence)
+    lines = ["## Top 50 trends across platforms", ""]
+    if not topics:
+        lines += ["No observations in the latest snapshot.", ""]
 
-        lines.append("")
+    for topic in topics:
+        title = _cell(topic["title"])
+        region = topic["region"].replace("_", " ")
+        region = region.title()
+        countries = ", ".join(topic["countries"]) or "global"
+        summary = "- %s — %s; score %s; %s" % (
+            title,
+            region,
+            topic["score"],
+            countries,
+        )
+        lines.append(summary)
 
-    highlights = _platform_sections(report)
-    lines.extend(highlights)
-    return lines
+        # Keep geographic evidence nested, without repeating platform highlights.
+        for row in topic["evidence"]:
+            evidence = _evidence_lines(row)
+            lines.extend(evidence)
 
-
-def _platform_sections(report):
-    # Display the original feed positions separately from grouped topic scores.
-    lines = ["## Platform highlights", ""]
-    for source, countries in report["platform_trends"].items():
-        source_label = _cell(source)
-        for country, rows in countries.items():
-            lines += ["### %s / %s" % (source_label, country), ""]
-            for row in rows:
-                url = row.get("url")
-                link = _link(row["title"], url)
-                kind = _cell(row["kind"])
-                metric_value = _cell(row.get("metric_value"))
-                metric_name = _cell(row.get("metric_name"))
-                line = "- %s — %s, position %s; %s %s." % (
-                    link,
-                    kind,
-                    row["rank"],
-                    metric_value,
-                    metric_name,
-                )
-                lines.append(line)
-
-            lines.append("")
-
+    lines.append("")
     return lines
 
 

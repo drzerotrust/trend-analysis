@@ -16,6 +16,7 @@ from compatibility import (
     version_parts,
 )
 from config import SOURCES, load_settings
+from environment import load_environment
 from reporting import build_report, write_report
 from storage import save_snapshot
 
@@ -114,7 +115,9 @@ def doctor_once(args):
     elif config["status"] == "not_checked":
         print("Configuration not checked; pass --config /absolute/path/config.toml.")
     else:
-        print("Configuration invalid or unreadable; check the selected TOML file.")
+        print(
+            "Configuration invalid or unreadable; check the TOML and environment files."
+        )
 
     youtube = "skipped until YOUTUBE_API_KEY is set (free)"
     if config["youtube_key_present"]:
@@ -209,6 +212,9 @@ def main(argv=None):
         status = 0
         json_output = getattr(args, "json", False)
         if args.command in {"collect", "run"}:
+            # Credentials are unnecessary for stored reports and discovery commands.
+            load_environment()
+
             # Keep status messages out of piped JSON; collection still saves to SQLite.
             output = sys.stderr if json_output else sys.stdout
             status = collect_once(settings, output=output)

@@ -261,8 +261,12 @@ class HackerNewsTests(unittest.TestCase):
 
             self.assertIn("hacker_news", defaults["sources"])
             output, error = io.StringIO(), io.StringIO()
+            env_file = root / "test.env"
+            env_file.write_text("", encoding="utf-8")
+            variables = {"TREND_ENGINE_ENV_FILE": str(env_file)}
 
             with (
+                patch.dict("os.environ", variables, clear=True),
                 patch("social.fetch_json", side_effect=self.response),
                 redirect_stdout(output),
                 redirect_stderr(error),
@@ -291,9 +295,9 @@ class HackerNewsTests(unittest.TestCase):
             markdown, _ = write_report(report, settings["reports_dir"])
             text = markdown.read_text()
 
-            self.assertLess(
-                text.index("## Global information"), text.index("## North America")
-            )
+            self.assertIn("## Top 50 trends across platforms", text)
+            self.assertIn(" — Global; score ", text)
+            self.assertNotIn("Platform highlights", text)
             self.assertIn("35.0 comments", text)
             self.assertIn("https://news.ycombinator.com/item?id=101", text)
             self.assertNotIn("hacker_news/None", text)

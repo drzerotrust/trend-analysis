@@ -3,6 +3,7 @@
 import copy
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,13 @@ class ContractTests(unittest.TestCase):
         self.config = Path(self.temp.name) / "config.toml"
         self.config.write_text('countries = ["US", "JP"]\n')
         self.settings = load_settings(self.config)
+
+        # Real operator credentials must never be loaded during contract tests.
+        env_file = self.config.parent / "test.env"
+        env_file.write_text("", encoding="utf-8")
+        variables = {"TREND_ENGINE_ENV_FILE": str(env_file)}
+        environment = patch.dict(os.environ, variables, clear=True)
+        self.enterContext(environment)
 
     def sample_collection(self):
         # Exercise every current source without network calls or real credentials.

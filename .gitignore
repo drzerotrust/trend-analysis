@@ -16,8 +16,10 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-reports/*
-!reports/.gitkeep
+# Keep viewer assets while ignoring generated report files and directories.
+/reports/*
+!/reports/.gitkeep
+!/reports/static/
 /.agents/
 skills-lock.json
 *.swp

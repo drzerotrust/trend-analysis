@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from config import load_settings
+from environment import load_environment
 
 __all__ = [
     "CONTRACT_VERSIONS",
@@ -16,7 +17,7 @@ __all__ = [
 ]
 
 # Hatchling reads the same version used by the CLI.
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 CONTRACT_VERSIONS = {"report": 3, "doctor": 2}
 
 
@@ -65,6 +66,12 @@ def check_installation(args):
         if required is not None and required != version:
             errors.append("%s_schema_mismatch" % name)
 
+    # Doctor uses the same credential loading as collection, without network I/O.
+    try:
+        load_environment()
+    except ValueError:
+        errors.append("environment_invalid")
+
     # A bare installation can be checked from anywhere, without a user config.
     youtube_key = os.getenv("YOUTUBE_API_KEY")
     configuration = {
@@ -87,13 +94,16 @@ def check_installation(args):
         else:
             configuration.update(status="ok", enabled_sources=settings["sources"])
 
+    if "environment_invalid" in errors:
+        configuration["status"] = "error"
+
     # Config errors have their own exit code; other mismatches use exit 1.
     status = 0
     document_status = "success"
     if errors:
         status = 1
         document_status = "error"
-    if "configuration_invalid" in errors:
+    if "configuration_invalid" in errors or "environment_invalid" in errors:
         status = 2
 
     document = {
