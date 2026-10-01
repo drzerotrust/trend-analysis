@@ -28,7 +28,7 @@ sources = ["src"]
 "contracts" = "trend_engine_contracts"
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "contracts", "tests", "dirtyServer.py", "reports/static", "README.md", "AGENTS.md", "config.toml", "pyproject.toml"]
+include = ["src", "contracts", "tests", "dirtyServer.py", "reports/static", "README.md", "LICENSE", "AGENTS.md", "config.toml", "pyproject.toml"]
 
 [tool.ruff]
 line-length = 88

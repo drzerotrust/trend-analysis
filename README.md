@@ -6,9 +6,52 @@ regional search/social signals in North America and Asia. It does not execute
 trades, collect market prices, match tokens, or predict price moves.
 Python 3.12+, with Peewee for SQLite and python-dotenv for credential loading.
 
-## Run it
+## Install the CLI
 
-From the repository root:
+With [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+
+```bash
+uv tool install --python 3.12 "git+https://github.com/drzerotrust/trend-analysis.git"
+trend-engine --version
+```
+
+The repository is `trend-analysis`; the Python package and command are
+`trend-engine`. [uv tool install](https://docs.astral.sh/uv/guides/tools/#installing-tools)
+keeps the CLI and its dependencies in an isolated environment. No checkout or
+project venv is needed. If the command is not on PATH, run `uv tool update-shell`
+and open a new terminal.
+
+The URL above installs the current default branch, not a tagged release. For a
+reproducible installation, append `@<full-commit-hash>` to the Git URL, or use a
+release tag once one is published. A package version alone does not create a Git tag.
+
+Save a `config.toml` in a writable directory outside uv's managed environment.
+This minimal config uses the default countries, sources, and collection settings:
+
+```toml
+database = "trend_engine.db"
+reports_dir = "reports"
+```
+
+The full template is [config.toml](config.toml). Database and report paths are
+relative to your config file. Installation does not create that file or collect data.
+Replace the path below with your config's absolute path:
+
+```bash
+trend-engine doctor --config /absolute/path/to/config.toml
+trend-engine run --config /absolute/path/to/config.toml
+trend-engine report --config /absolute/path/to/config.toml --json
+```
+
+Doctor is offline; `run` collects fresh data. Credentials are optional and configured
+separately as described below. To update the default-branch install, use
+`uv tool upgrade trend-engine`. To remove the installed tool, use
+`uv tool uninstall trend-engine`; keep your config and data outside its environment.
+
+## Local development
+
+For editing the code or using the optional browser viewer, work from a checkout
+with the repository's local venv:
 
 ```bash
 python3 -m venv ./venv
@@ -26,6 +69,8 @@ from the repository root:
 
 The installed `trend-engine` command and `python -m cli` entry point also work.
 Installation uses Hatchling as a build tool only.
+
+## Credentials
 
 For the optional free YouTube key, create `.env` from `.env.example` if you do not
 already have one. Set `YOUTUBE_API_KEY` there. `run`, `collect`, and `doctor` load
@@ -55,12 +100,18 @@ credentials and still work when an environment file is invalid.
 YouTube is skipped without a key. Other collectors attempt public, keyless access.
 No paid endpoints, paid scraper services, brokerage credentials, or wallets are used.
 
+## Collect and report
+
+The examples below use the installed command. For a local checkout, use
+`./venv/bin/trend-engine` instead. Pass `--config /absolute/path/to/config.toml`
+after the subcommand if your config is not in the current directory.
+
 ```bash
-./venv/bin/trend-engine collect
-./venv/bin/trend-engine report --window 24
-./venv/bin/trend-engine run --sources hacker_news google_trends
-./venv/bin/trend-engine run --sources hacker_news --json
-./venv/bin/trend-engine run --config /path/to/config.toml
+trend-engine collect
+trend-engine report --window 24
+trend-engine run --sources hacker_news google_trends
+trend-engine run --sources hacker_news --json
+trend-engine run --config /absolute/path/to/config.toml
 ```
 
 `collect` saves one snapshot. `report` reads history without changing the database.
@@ -80,8 +131,8 @@ report files. Status messages and errors go to stderr, so stdout can be redirect
 or piped to another tool. `run --json` still saves the collected snapshot to SQLite.
 
 ```bash
-./venv/bin/python src/cli.py report --window 24 --json
-./venv/bin/python src/cli.py run --json > trends.json
+trend-engine report --window 24 --json
+trend-engine run --json > trends.json
 ```
 
 The JSON has the same format as `report.json`. Exit codes are unchanged: an empty
@@ -142,10 +193,10 @@ never as instructions to execute.
 Offline discovery and compatibility checks:
 
 ```bash
-./venv/bin/trend-engine --version
-./venv/bin/trend-engine schema
-./venv/bin/trend-engine schema doctor
-./venv/bin/trend-engine doctor --json --min-version 0.4.1 --max-version 0.5.0 --require-report-schema 3 --require-doctor-schema 2
+trend-engine --version
+trend-engine schema
+trend-engine schema doctor
+trend-engine doctor --json --min-version 0.4.1 --max-version 0.5.0 --require-report-schema 3 --require-doctor-schema 2
 ```
 
 These commands are offline. `schema` prints the bundled report schema by default;
@@ -344,3 +395,7 @@ Storage tests also verify compatibility with existing snapshot files, read-only
 access, transaction rollback, and isolation between database connections.
 HN tests cover request caps, the shared worker pool, global attribution, removed
 items, partial failures, rank changes, JSON/Markdown reports, and CLI source selection.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
